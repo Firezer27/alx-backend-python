@@ -1,5 +1,6 @@
 import sqlite3
 import functools
+from datatime import datatime
 
 #### decorator to lof SQL queries
 
@@ -9,14 +10,15 @@ def log_queries(func):
     def wrapper(*args, **kwargs):
         query= kwargs.get('query') or (args[0] if args else None)
 
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         if query:
-            print(f"Executing sql query:{query}")
+            print(f"[{timestamp}]Executing sql query:{query}")
         else:
-            print("no sql query provided.")
+            print(f"[{timestamp}]no sql query provided.")
         results = func(*args, **kwargs)
         return results
     return wrapper
-    
+
 @log_queries
 def fetch_all_users(query):
     conn = sqlite3.connect('users.db')
