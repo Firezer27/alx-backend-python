@@ -2,10 +2,30 @@ import sqlite3
 import functools
 
 """your code goes here"""
+#---------------------------
+#with_db_connection decorator
+#---------------------------
+def with_db_connection(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        print("Establishing database connection...")
+        conn =sqlite3.connect('users.db')
+        try:
+            result = func(conn, *args, **kwargs)
+            return result
+        finally:
+            conn.close()
+            print("Database connection closed.")
+    return wrapper
+
+# ------------------------------
+# Decorator to manage transactions
+# ------------------------------
+
 def transactional(func):
     @functools.wraps(func)
     def wrapper(conn,*args,**kwargs):
-        conn =sqlite3.connect('users.db')
+        
         try:
             print("transaction started...")
             result = func(conn,*args,**kwargs)
