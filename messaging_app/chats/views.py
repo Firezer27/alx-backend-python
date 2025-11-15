@@ -1,43 +1,77 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from .models import Conversation, Message, User
+from rest_framework.exceptions import ValidationError
+
+from .models import Conversation, Message
 from .serializers import ConversationSerializer, MessageSerializer
 
 
-# -------------------------
-# CONVERSATION VIEWSET
-# -------------------------
+# ---------------------------------------------------
+# Conversation ViewSet
+# ---------------------------------------------------
 class ConversationViewSet(viewsets.ModelViewSet):
-    queryset = Conversation.objects.all()
+    queryset = Conversation.objects.all().prefetch_related("participants", "messages")
     serializer_class = ConversationSerializer
-    permission_classes = [IsAuthenticated]
 
-    def create(self, request):
-        """Create a conversation with participants"""
-        participants = request.data.get('participants')
+    def create(self, request, *args, **kwargs):
+        """
+        Create a new conversation.
+        Expected payload:
+        { "participants": [user_id1, user_id2] }
+        """
+        participants = request.data.get("participants")
 
         if not participants or len(participants) < 2:
-            return Response(
-                {"error": "At least two participants are required"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            raise ValidationError("A conversation must include at least two participants.")
 
+        # Create the conversation
         conversation = Conversation.objects.create()
-        conversation.participants.set(User.objects.filter(id__in=participants))
+        conversation.participants.set(participants)
+        conversation.save()
 
         serializer = self.get_serializer(conversation)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-# -------------------------
-# MESSAGE VIEWSET
-# -------------------------
+# ---------------------------------------------------
+# Message ViewSet
+# ---------------------------------------------------
 class MessageViewSet(viewsets.ModelViewSet):
-    queryset = Message.objects.all()
+    queryset = Message.objects.all().select_related("sender", "conversation")
     serializer_class = MessageSerializer
-    permission_classes = [IsAuthenticated]
 
-    def create(self, request):
+    def create(self, request, *args, **kwargs):
+        """
+        Send a message to an existing conversation.
+        Expected payload:
+        {
+            "conversation": "<conversation_id>",
+            "sender": "<user_id>",
+            "message_body": "Hello!"
+        }
+        """
         conversation_id = request.data.get("conversation")
-        message
+        message_body = request.data.get("message_body")
+        sender = request.data.get("sender")
+
+        if not conversation_id or not sender:
+            raise ValidationError("conversation and sender fields are required.")
+
+        if not message_body:
+            raise ValidationError("Message body cannot be empty.")
+
+        # Validate if conversation exists
+        try:
+            conversation = Conversation.objects.get(conversation_id=conversation_id)
+        except Conversation.DoesNotExist:
+            raise ValidationError("Conversation does not exist.")
+
+        # Create the message
+        message = Message.objects.create(
+            conversation=conversation,
+            sender_id=sender,
+            message_body=message_body
+        )
+
+        serializer = self.get_serializer(message)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
