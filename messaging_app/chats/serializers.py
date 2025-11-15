@@ -6,6 +6,8 @@ from .models import User, Conversation, Message
 # User Serializer
 # -----------------------------------
 class UserSerializer(serializers.ModelSerializer):
+    email = serializers.CharField()
+
     class Meta:
         model = User
         fields = [
@@ -23,13 +25,17 @@ class UserSerializer(serializers.ModelSerializer):
 # Message Serializer
 # -----------------------------------
 class MessageSerializer(serializers.ModelSerializer):
-    sender = UserSerializer(read_only=True)
+    sender_name = serializers.SerializerMethodField()
+
+    def get_sender_name(self, obj):
+        return f"{obj.sender.first_name} {obj.sender.last_name}"
 
     class Meta:
         model = Message
         fields = [
             "message_id",
             "sender",
+            "sender_name",
             "conversation",
             "message_body",
             "sent_at",
@@ -37,12 +43,20 @@ class MessageSerializer(serializers.ModelSerializer):
 
 
 # -----------------------------------
-# Conversation Serializer
-# (includes NESTED messages)
+# Conversation Serializer (NESTED)
 # -----------------------------------
 class ConversationSerializer(serializers.ModelSerializer):
     participants = UserSerializer(many=True, read_only=True)
-    messages = MessageSerializer(many=True, read_only=True)
+    messages = serializers.SerializerMethodField()
+    def get_messages(self, obj):
+        messages = obj.messages.all().order_by("sent_at")
+        return MessageSerializer(messages, many=True).data
+
+
+    def validate(self, data):
+        if "participants" in data and len(data["participants"]) == 0:
+            raise serializers.ValidationError("Conversation must have participants.")
+        return data
 
     class Meta:
         model = Conversation
