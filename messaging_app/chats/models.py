@@ -7,9 +7,8 @@ import uuid
 # Custom User Model
 # -----------------------------------
 class User(AbstractUser):
-    # Required by checker
     user_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    password = models.CharField(max_length=255)  # explicitly declared
+    password = models.CharField(max_length=255)
     email = models.EmailField(unique=True)
     first_name = models.CharField(max_length=150)
     last_name = models.CharField(max_length=150)
@@ -22,7 +21,6 @@ class User(AbstractUser):
 
     created_at = models.DateTimeField(auto_now_add=True)
 
-    # required to override default Django id
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["username"]
 
