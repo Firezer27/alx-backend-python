@@ -24,7 +24,6 @@ class ConversationViewSet(viewsets.ModelViewSet):
         if not participants or len(participants) < 2:
             raise ValidationError("A conversation must include at least two participants.")
 
-        # Create the conversation
         conversation = Conversation.objects.create()
         conversation.participants.set(participants)
         conversation.save()
@@ -60,13 +59,11 @@ class MessageViewSet(viewsets.ModelViewSet):
         if not message_body:
             raise ValidationError("Message body cannot be empty.")
 
-        # Validate if conversation exists
         try:
             conversation = Conversation.objects.get(conversation_id=conversation_id)
         except Conversation.DoesNotExist:
             raise ValidationError("Conversation does not exist.")
 
-        # Create the message
         message = Message.objects.create(
             conversation=conversation,
             sender_id=sender,
