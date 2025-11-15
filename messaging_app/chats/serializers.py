@@ -2,36 +2,53 @@ from rest_framework import serializers
 from .models import User, Conversation, Message
 
 
-# -------------------------
-# USER SERIALIZER
-# -------------------------
+# -----------------------------------
+# User Serializer
+# -----------------------------------
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            'id', 'username', 'first_name', 'last_name',
-            'email', 'phone_number', 'role'
+            "user_id",
+            "email",
+            "first_name",
+            "last_name",
+            "phone_number",
+            "role",
+            "created_at",
         ]
 
 
-# -------------------------
-# MESSAGE SERIALIZER
-# -------------------------
+# -----------------------------------
+# Message Serializer
+# -----------------------------------
 class MessageSerializer(serializers.ModelSerializer):
     sender = UserSerializer(read_only=True)
 
     class Meta:
         model = Message
-        fields = ['id', 'sender', 'message_body', 'sent_at', 'conversation']
+        fields = [
+            "message_id",
+            "sender",
+            "conversation",
+            "message_body",
+            "sent_at",
+        ]
 
 
-# -------------------------
-# CONVERSATION SERIALIZER
-# -------------------------
+# -----------------------------------
+# Conversation Serializer
+# (includes NESTED messages)
+# -----------------------------------
 class ConversationSerializer(serializers.ModelSerializer):
     participants = UserSerializer(many=True, read_only=True)
     messages = MessageSerializer(many=True, read_only=True)
 
     class Meta:
         model = Conversation
-        fields = ['id', 'participants', 'messages', 'created_at']
+        fields = [
+            "conversation_id",
+            "participants",
+            "created_at",
+            "messages",
+        ]
